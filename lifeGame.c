@@ -11,11 +11,13 @@
  * 過密
  *  生きているセルに隣接する生きたセルが4つ以上ならば、過密により死滅する。 
  ****************************************/
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include<time.h>
 
+#define DEBUG
 #define PUT_CELL_DEAD_CHAR printf("□")
 #define PUT_CELL_LIVE_CHAR printf("■")
 #define WAIT_TIME 1
@@ -54,7 +56,7 @@ int inspectBord(int **, int , int);
  * 生存していれば1、死滅していれば0
  * @param cellContent セルの値
  ****************************************/
-int isCellLive(int);
+int ifCellLiveAddCnt(int);
 
 /****************************************
  * 動的確保したメモリをint数値で初期化
@@ -71,6 +73,14 @@ int* initMemSetNum(int**, int, int);
  ****************************************/
 void waitSecond(double);
 
+/****************************************
+ * 次の世代のセルの状態を返す
+ * @param nowCellState 現在の世代のセル状態
+ * @param liveCellNum 周囲の生存セル数
+ * @return セル状態 
+ ****************************************/
+int judgeNextCellState(int, int);
+
 
 int main(void){
 	int i, *bord, initBordSizeX, initBordSizeY, geneCnt;
@@ -78,7 +88,8 @@ int main(void){
 
 	// ターミナルクリア
 	system("clear");
-
+	
+#ifndef DEBUG
 	// 盤のサイズ入力
 	do{
 		printf("Please Input Cell Size (X,Y > 1) X Y > ");
@@ -98,6 +109,11 @@ int main(void){
 			scanf("%*s");
 		}
 	}while(geneCnt < 1);
+#else
+	initBordSizeX = 20;
+	initBordSizeY = 20;
+	geneCnt = 20;
+#endif
 
 	// メモリ確保
 	bord = (int*)malloc(sizeof(int) * initBordSizeY * initBordSizeX);
@@ -112,15 +128,34 @@ int main(void){
 	 * *(bord + n*initBordSizeY + m) で n行目のm列を指す
 	 */
 	initMemSetNum(&bord, CELL_STATE_DEAD, initBordSizeX*initBordSizeY);
-	for(i=0;i<initBordSizeY;++i){
-		*(bord + (initBordSizeY*(initBordSizeY/2)) + i) = CELL_STATE_LIVE;
-		/* *(bord + (i*initBordSizeY) + initBordSizeX/2) = CELL_STATE_LIVE; */
-	}
+	/*
+	 * for(i=0;i<initBordSizeY;++i){
+	 *     *(bord + (initBordSizeY*(initBordSizeY/2)) + i) = CELL_STATE_LIVE;
+	 *     *(bord + (i*initBordSizeY) + initBordSizeX/2) = CELL_STATE_LIVE;
+	 *     *(bord + i*initBordSizeY + i) = *(bord + i*initBordSizeY + (initBordSizeX-i-1)) = CELL_STATE_LIVE;
+	 * }
+	 */
+
+	// 左上角
+	*(bord + 0*initBordSizeY + 0) = CELL_STATE_LIVE;
+	// 左下角
+	*(bord + (initBordSizeY-1)*initBordSizeY + (0)) = CELL_STATE_LIVE;
+	// 右上角
+	*(bord + 0*initBordSizeY + (initBordSizeX-1)) = CELL_STATE_LIVE;
+	// 右下角
+	*(bord + (initBordSizeY-1)*initBordSizeY + (initBordSizeX-1)) = CELL_STATE_LIVE;
+	// 上端
+	*(bord + (0)*initBordSizeY + (initBordSizeX/2)) = CELL_STATE_LIVE;
+	// 下端
+	*(bord + (initBordSizeY-1)*initBordSizeY + (initBordSizeX/2)) = CELL_STATE_LIVE;
+	// 左端
+	*(bord + (initBordSizeY/2)*initBordSizeY + (0)) = CELL_STATE_LIVE;
+	// 右端
+	*(bord + (initBordSizeY/2)*initBordSizeY + (initBordSizeX-1)) = CELL_STATE_LIVE;
+
+	/* *(bord + 1*initBordSizeY + 1) = CELL_STATE_LIVE; */
 
 	/*
-	   for(i=0;i<initBordSizeY;++i){
-	 *(bord + i*initBordSizeY + i) = *(bord + i*initBordSizeY + (initBordSizeX-i-1)) = CELL_STATE_LIVE;
-	 }
 	 *(bord + 5*initBordSizeY + 5) = *(bord + 6*initBordSizeY + 5) = *(bord + 7*initBordSizeY + 5) = CELL_STATE_LIVE;
 	 *(bord + 8*initBordSizeY + 5) = *(bord + 8*initBordSizeY + 7) = *(bord + 9*initBordSizeY + 5) = CELL_STATE_LIVE;
 	 *(bord + 10*initBordSizeY + 6) = *(bord + 10*initBordSizeY + 7) = *(bord + 10*initBordSizeY + 5) = CELL_STATE_LIVE;
@@ -204,65 +239,83 @@ int inspectBord(int **bord, int sizeX, int sizeY){
 	//初期化
 	initMemSetNum(&nextBord, CELL_STATE_DEAD, sizeX * sizeY);
 
-	// 隣接セルを検査する
+	/*
+	 * 隣接セルを検査する
+	 * 端ならば反対側へ繋ぐ
+	 */
 	for(i=0;i<sizeY;++i){
 		for(j=0;j<sizeX;++j){
 			liveCellCnt = 0;
 
-			// 左上
-			if(1 <= i && 1 <= j)
-				liveCellCnt += isCellLive(*(*(bord) + (i-1)*sizeY + (j-1)));
-			// 上
-			if(1 <= i)
-				liveCellCnt += isCellLive(*(*(bord) + (i-1)*sizeY + j));
-			// 右上
-			if(1 <= i && j <= sizeX-2)
-				liveCellCnt += isCellLive(*(*(bord) + (i-1)*sizeY + (j+1)));
-			// 右
-			if(j <= sizeX-2)
-				liveCellCnt += isCellLive(*(*(bord) + i*sizeY + (j+1)));
-			// 右下
-			if(i <= sizeY-2 && j <= sizeX-2)
-				liveCellCnt += isCellLive(*(*(bord) + (i+1)*sizeY + (j+1)));
-			// 下
-			if(i <= sizeY-2)
-				liveCellCnt += isCellLive(*(*(bord) + (i+1)*sizeY + j));
-			// 左下
-			if(i <= sizeY-2 && 1 <= j)
-				liveCellCnt += isCellLive(*(*(bord) + (i+1)*sizeY + (j-1)));
-			// 左
-			if(1 <= j)
-				liveCellCnt += isCellLive(*(*(bord) + i*sizeY + (j-1)));
-
-			// 現在セルの状態で分岐
-			switch(*(*(bord) + i*sizeY + j)){
-				case CELL_STATE_LIVE:
-					if(2 == liveCellCnt || 3 == liveCellCnt){
-						// 生存 - 生きているセルに隣接する生きたセルが2つか3つならば、次の世代でも生存する。
-						*(nextBord + i*sizeY + j) = CELL_STATE_LIVE;
-
-						/* printf("(%d,%d)-Cell lives Next generation\n", i, j); */
-					}else if(liveCellCnt <= 1){
-						// 過疎 - 生きているセルに隣接する生きたセルが1つ以下ならば、過疎により死滅する。
-						*(nextBord + i*sizeY + j) = CELL_STATE_DEAD;
-
-						/* printf("(%d,%d)-Cell die under-population\n", i, j); */
-					}else if(4 <= liveCellCnt){
-						// 過密 - 生きているセルに隣接する生きたセルが4つ以上ならば、過密により死滅する。
-						*(nextBord + i*sizeY + j) = CELL_STATE_DEAD;
-
-						/* printf("(%d,%d)-Cell is overcrowding\n", i, j); */
-					}
-					break;
-				case CELL_STATE_DEAD:
-					if(3 == liveCellCnt){
-						// 誕生 - 死んでいるセルに隣接する生きたセルがちょうど3つあれば、次の世代が誕生する。
-						*(nextBord + i*sizeY + j) = CELL_STATE_LIVE;
-
-						/* printf("(%d,%d)-Cell is reproduction\n", i, j); */
-					}
-					break;
+			if(1 <= i && 1 <= j){
+				// 左上
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + (j-1)));
+			}else{
+				// 左上角を右下角へ
+				if(0 == j)
+					liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (sizeX-1)));
+				else
+					liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (j-1)));
 			}
+
+			if(1 <= i){
+				// 上
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + j));
+			}else{
+				// 上端を下端へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + j));
+			}
+
+			if(1 <= i && j <= sizeX-2){
+				// 右上
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + (j+1)));
+			}else{
+				// 右上角を左下角へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (sizeY-1)));
+			}
+
+			if(j <= sizeX-2){
+				// 右
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + (j+1)));
+			}else{
+				// 右端を左端へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + (0)));
+			}
+
+			if(i <= sizeY-2 && j <= sizeX-2){
+				// 右下
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + (j+1)));
+			}else{
+				// 右下角を左上角へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (0)));
+			}
+
+			if(i <= sizeY-2){
+				// 下
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + j));
+			}else{
+				// 下端を上端へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + j));
+			}
+
+			if(i <= sizeY-2 && 1 <= j){
+				// 左下
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + (j-1)));
+			}else{
+				// 左下角を右上角へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (sizeX-1)));
+			}
+
+			if(1 <= j){
+				// 左
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + (j-1)));
+			}else{
+				// 左端を右端へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + (sizeX-1)));
+			}
+
+			// 現在セルの状態に応じて死滅と生存を判別
+			*(nextBord + i*sizeY + j) = judgeNextCellState(*(*(bord) + i*sizeY + j), liveCellCnt);
 		}
 	}
 
@@ -284,7 +337,7 @@ int inspectBord(int **bord, int sizeX, int sizeY){
 }
 
 
-int isCellLive(int cellContent){
+int ifCellLiveAddCnt(int cellContent){
 	return (cellContent == CELL_STATE_LIVE)?(1):(0);
 }
 
@@ -302,4 +355,32 @@ int* initMemSetNum(int **mem, int n, int size){
 	}
 
 	return *mem;
+}
+
+int judgeNextCellState(int nowCellState, int liveCellNum){
+	int nextState = nowCellState;
+
+	// 現在セルの状態で分岐
+	switch(nowCellState){
+		case CELL_STATE_LIVE:
+			if(2 == liveCellNum || 3 == liveCellNum){
+				// 生存 - 生きているセルに隣接する生きたセルが2つか3つならば、次の世代でも生存する。
+				nextState =  CELL_STATE_LIVE;
+			}else if(liveCellNum <= 1){
+				// 過疎 - 生きているセルに隣接する生きたセルが1つ以下ならば、過疎により死滅する。
+				nextState =  CELL_STATE_DEAD;
+			}else if(4 <= liveCellNum){
+				// 過密 - 生きているセルに隣接する生きたセルが4つ以上ならば、過密により死滅する。
+				nextState =  CELL_STATE_DEAD;
+			}
+			break;
+		case CELL_STATE_DEAD:
+			if(3 == liveCellNum){
+				// 誕生 - 死んでいるセルに隣接する生きたセルがちょうど3つあれば、次の世代が誕生する。
+				nextState =  CELL_STATE_LIVE;
+			}
+			break;
+	}
+
+	return nextState;
 }
