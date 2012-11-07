@@ -69,7 +69,7 @@ int* initMemSetNum(int**, int, int);
 
 /****************************************
  * 指定された秒間待つ
- * @param t 1次元でメモリ確保された更新される盤
+ * @param t 指定する秒
  ****************************************/
 void waitSecond(double);
 
@@ -77,7 +77,7 @@ void waitSecond(double);
  * 次の世代のセルの状態を返す
  * @param nowCellState 現在の世代のセル状態
  * @param liveCellNum 周囲の生存セル数
- * @return セル状態 
+ * @return セル状態
  ****************************************/
 int judgeNextCellState(int, int);
 
@@ -226,7 +226,7 @@ void printBord(int** bord, int sizeX, int sizeY, int generation){
 }
 
 
-int inspectBord(int **bord, int sizeX, int sizeY){
+int inspectBord(int **bord, const int sizeX, const int sizeY){
 	int i, j, liveCellCnt, *nextBord;
 	size_t bordMomerySize = sizeof(int) * sizeX * sizeY;
 
@@ -241,7 +241,9 @@ int inspectBord(int **bord, int sizeX, int sizeY){
 
 	/*
 	 * 隣接セルを検査する
-	 * 端ならば反対側へ繋ぐ
+	 * 端ならば反対側へ接続
+	 * i : 縦
+	 * j : 横
 	 */
 	for(i=0;i<sizeY;++i){
 		for(j=0;j<sizeX;++j){
@@ -250,12 +252,12 @@ int inspectBord(int **bord, int sizeX, int sizeY){
 			if(1 <= i && 1 <= j){
 				// 左上
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + (j-1)));
-			}else{
+			}else if(0 == j){
 				// 左上角を右下角へ
-				if(0 == j)
-					liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (sizeX-1)));
-				else
-					liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (j-1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (sizeX-1)));
+			}else{
+				// 一つ左側の下端へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (j-1)));
 			}
 
 			if(1 <= i){
@@ -266,12 +268,15 @@ int inspectBord(int **bord, int sizeX, int sizeY){
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + j));
 			}
 
-			if(1 <= i && j <= sizeX-2){
+			if(1 <= i && j <= (sizeX-2)){
 				// 右上
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + (j+1)));
-			}else{
+			}else if(j == (sizeX-1)){
 				// 右上角を左下角へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (sizeY-1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (0)));
+			}else{
+				// 一つ右の下端へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (j+1)));
 			}
 
 			if(j <= sizeX-2){
@@ -285,9 +290,12 @@ int inspectBord(int **bord, int sizeX, int sizeY){
 			if(i <= sizeY-2 && j <= sizeX-2){
 				// 右下
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + (j+1)));
-			}else{
+			}else if(j == (sizeX-1)){
 				// 右下角を左上角へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (0)));
+			}else{
+				// 一つ右の上端へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (j+1)));
 			}
 
 			if(i <= sizeY-2){
