@@ -16,7 +16,7 @@
 #include<string.h>
 #include<time.h>
 
-#define DEBUG
+/* #define DEBUG */
 #define PUT_CELL_DEAD_CHAR printf("□")
 #define PUT_CELL_LIVE_CHAR printf("■")
 #define WAIT_TIME 1
@@ -110,7 +110,7 @@ int main(void){
 		}
 	}while(geneCnt < 1);
 #else
-	initBordSizeX = 10;
+	initBordSizeX = 5;
 	initBordSizeY = 10;
 	geneCnt = 20;
 #endif
@@ -125,43 +125,39 @@ int main(void){
 	/*
 	 * 盤を初期化
 	 * *(先頭アドレス + 縦 + 横)
-	 * *(bord + n*initBordSizeY + m) で n行目のm列を指す
+	 * ex:initBordSizeX = 5, initBordSizeY = 10
+	 * |00|01|02|03|04|
+	 * |05|06|07|08|09|
+	 * |10|11|12|13|14|
+	 * ~~~~~~~~~~~~~~~~
+	 * *(先頭アドレス + 行 + 列)
+	 * *(bord + n*initBordSizeX + m) で n行目のm列を指す
 	 */
 	initMemSetNum(&bord, CELL_STATE_DEAD, initBordSizeX*initBordSizeY);
-	/*
-	 * for(i=0;i<initBordSizeY;++i){
-	 *     *(bord + (initBordSizeY*(initBordSizeY/2)) + i) = CELL_STATE_LIVE;
-	 *     *(bord + (i*initBordSizeY) + initBordSizeX/2) = CELL_STATE_LIVE;
-	 *     *(bord + i*initBordSizeY + i) = *(bord + i*initBordSizeY + (initBordSizeX-i-1)) = CELL_STATE_LIVE;
-	 * }
-	 */
+	
+	// 盤への入力
+	for(i=0;i<initBordSizeY;++i){
+		/* *(bord + (initBordSizeX*(initBordSizeY/2)) + i) = CELL_STATE_LIVE; */
+		/* *(bord + (i*initBordSizeY) + initBordSizeX/2) = CELL_STATE_LIVE; */
+		*(bord + i*initBordSizeX + i) = *(bord + i*initBordSizeX + (initBordSizeX-i-1)) = CELL_STATE_LIVE;
+	}
 
 	// 左上角
-	*(bord + 0*initBordSizeY + 0) = CELL_STATE_LIVE;
+	/* *(bord + 0*initBordSizeX + 0) = CELL_STATE_LIVE; */
 	// 左下角
-	*(bord + (initBordSizeY-1)*initBordSizeY + (0)) = CELL_STATE_LIVE;
+	/* *(bord + (initBordSizeY-1)*initBordSizeX + (0)) = CELL_STATE_LIVE; */
 	// 右上角
-	*(bord + 0*initBordSizeY + (initBordSizeX-1)) = CELL_STATE_LIVE;
+	/* *(bord + 0*initBordSizeX + (initBordSizeX-1)) = CELL_STATE_LIVE; */
 	// 右下角
-	*(bord + (initBordSizeY-1)*initBordSizeY + (initBordSizeX-1)) = CELL_STATE_LIVE;
+	/* *(bord + (initBordSizeY-1)*initBordSizeX + (initBordSizeX-1)) = CELL_STATE_LIVE; */
 	// 上端
-	/* *(bord + (0)*initBordSizeY + (initBordSizeX/2)) = CELL_STATE_LIVE; */
+	/* *(bord + (0)*initBordSizeX + (initBordSizeX/2)) = CELL_STATE_LIVE; */
 	// 下端
-	/* *(bord + (initBordSizeY-1)*initBordSizeY + (initBordSizeX/2)) = CELL_STATE_LIVE; */
+	/* *(bord + (initBordSizeY-1)*initBordSizeX + (initBordSizeX/2)) = CELL_STATE_LIVE; */
 	// 左端
-	/* *(bord + (initBordSizeY/2)*initBordSizeY + (0)) = CELL_STATE_LIVE; */
+	/* *(bord + (initBordSizeY/2)*initBordSizeX + (0)) = CELL_STATE_LIVE; */
 	// 右端
-	/* *(bord + (initBordSizeY/2)*initBordSizeY + (initBordSizeX-1)) = CELL_STATE_LIVE; */
-
-	/* *(bord + 1*initBordSizeY + 1) = CELL_STATE_LIVE; */
-
-	/*
-	 *(bord + 5*initBordSizeY + 5) = *(bord + 6*initBordSizeY + 5) = *(bord + 7*initBordSizeY + 5) = CELL_STATE_LIVE;
-	 *(bord + 8*initBordSizeY + 5) = *(bord + 8*initBordSizeY + 7) = *(bord + 9*initBordSizeY + 5) = CELL_STATE_LIVE;
-	 *(bord + 10*initBordSizeY + 6) = *(bord + 10*initBordSizeY + 7) = *(bord + 10*initBordSizeY + 5) = CELL_STATE_LIVE;
-	 *(bord + 12*initBordSizeY + 10) = *(bord + 11*initBordSizeY + 6) = *(bord + 11*initBordSizeY + 8) = CELL_STATE_LIVE;
-	 *(bord + 11*initBordSizeY + 10) = *(bord + 12*initBordSizeY + 6) = *(bord + 12*initBordSizeY + 9) = CELL_STATE_LIVE;
-	 */
+	/* *(bord + (initBordSizeY/2)*initBordSizeX + (initBordSizeX-1)) = CELL_STATE_LIVE; */
 
 	// 盤の捜査開始
 	for(i=1;i<=geneCnt;++i){
@@ -189,7 +185,7 @@ int main(void){
 
 
 void printBord(int** bord, int sizeX, int sizeY, int generation){
-	int i, j, nowY;
+	int i, j, looplimit = sizeX * sizeY;
 
 	// ターミナルクリア
 	system("clear");
@@ -205,11 +201,10 @@ void printBord(int** bord, int sizeX, int sizeY, int generation){
 	printf("**\n");
 
 	// 盤を出力
-	for(i=0;i<sizeY;++i){
+	for(i=0;i<looplimit;i+=sizeX){
 		printf(" * ");
-		nowY = i*sizeY;
 		for(j=0;j<sizeX;++j){
-			(CELL_STATE_LIVE == *(*(bord) + nowY + j))?(PUT_CELL_LIVE_CHAR):(PUT_CELL_DEAD_CHAR);
+			(CELL_STATE_LIVE == *(*(bord) + i + j))?(PUT_CELL_LIVE_CHAR):(PUT_CELL_DEAD_CHAR);
 		}
 		printf(" *\n");
 	}
@@ -227,8 +222,9 @@ void printBord(int** bord, int sizeX, int sizeY, int generation){
 
 
 int inspectBord(int **bord, const int sizeX, const int sizeY){
-	int i, j, liveCellCnt, *nextBord, endX = sizeX-1, endY = sizeY-1;
-	size_t bordMomerySize = sizeof(int) * sizeX * sizeY;
+	int i, j, liveCellCnt, *nextBord;
+	const int endX = sizeX-1, endY = sizeY-1;
+	const size_t bordMomerySize = sizeof(int) * sizeX * sizeY;
 
 	// メモリ確保
 	nextBord = (int*)malloc(bordMomerySize);
@@ -251,98 +247,98 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 
 			if(0 < i){
 				// 上
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + j));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeX + j));
 			}else{
 				// 上端を下端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeY + j));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeX + j));
 			}
 
 			if(i < endY){
 				// 下
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + j));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeX + j));
 			}else{
 				// 下端を上端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + j));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeX + j));
 			}
 
 			if(0 < j){
 				// 左
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + (j-1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeX + (j-1)));
 			}else{
 				// 左端を右端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + endX));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeX + endX));
 			}
 
 			if(j < endX){
 				// 右
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + (j+1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeX + (j+1)));
 			}else{
 				// 右端を左端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + (0)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeX + (0)));
 			}
 
 			// 左上のセルを確認
 			if(i == 0 && j == 0){
 				// 左上角の場合、右下角へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeY + endX));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeX + endX));
 			}else if(j == 0){
 				// 左端の場合、一つ上の右端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + endX));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeX + endX));
 			}else if(i == 0){
 				// 上端の場合、一つ左の下端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeY + (j-1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeX + (j-1)));
 			}else{
 				// そのまま左上へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + (j-1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeX + (j-1)));
 			}
 
 			// 右上のセルを確認
 			if(0 == i && endX == j){
 				// 右上角の場合、左下角へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeY + (0)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeX + (0)));
 			}else if(0 == i){
 				// 上端の場合、一つ右の下端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeY + (j+1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + endY*sizeX + (j+1)));
 			}else if(endX == j){
 				// 右端の場合、一つ上の左端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + (0)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeX + (0)));
 			}else{
 				// そのまま右上へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeY + (j+1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i-1)*sizeX + (j+1)));
 			}
 
 			// 左下のセルを確認
 			if(i == endY && j == 0){
 				// 左下角の場合、右上角へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + endX));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeX + endX));
 			}else if(endY == i){
 				// 下端の場合、一つ左の上端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (j-1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeX + (j-1)));
 			}else if(0 == j){
 				// 左端の場合、一つ下の右端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + endX));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeX + endX));
 			}else{
 				// そのまま左下へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + (j-1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeX + (j-1)));
 			}
 
 			// 右下のセルを確認
 			if(i == endY && j == endX){
 				// 右下角の場合、左上角へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (0)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeX + (0)));
 			}else if(endY == i){
 				// 下端の場合、一つ右の上端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (j+1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeX + (j+1)));
 			}else if(endX == j){
 				// 右端の場合、一つ下の左端へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + (0)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeX + (0)));
 			}else{
 				// そのまま右下へ
-				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + (j+1)));
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeX + (j+1)));
 			}
 
 			// 現在セルの状態に応じて死滅と生存を判別
-			*(nextBord + i*sizeY + j) = judgeNextCellState(*(*(bord) + i*sizeY + j), liveCellCnt);
+			*(nextBord + i*sizeX + j) = judgeNextCellState(*(*(bord) + i*sizeX + j), liveCellCnt);
 
 #ifdef DEBUG
 			if(0<liveCellCnt){
