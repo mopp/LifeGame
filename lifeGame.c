@@ -259,6 +259,8 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 				// 一つ左側の下端へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (j-1)));
 			}
+			
+			printf("1mopp %d \n", i);
 
 			if(1 <= i){
 				// 上
@@ -267,6 +269,7 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 				// 上端を下端へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + j));
 			}
+			printf("2mopp %d \n", i);
 
 			if(1 <= i && j <= (sizeX-2)){
 				// 右上
@@ -278,6 +281,7 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 				// 一つ右の下端へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (sizeY-1)*sizeY + (j+1)));
 			}
+			printf("3mopp %d \n", i);
 
 			if(j <= sizeX-2){
 				// 右
@@ -286,6 +290,8 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 				// 右端を左端へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + i*sizeY + (0)));
 			}
+			
+			printf("4mopp %d \n", i);
 
 			if(i <= sizeY-2 && j <= sizeX-2){
 				// 右下
@@ -297,6 +303,7 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 				// 一つ右の上端へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (j+1)));
 			}
+			printf("5mopp %d \n", i);
 
 			if(i <= sizeY-2){
 				// 下
@@ -305,11 +312,13 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 				// 下端を上端へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + j));
 			}
+			printf("6mopp %d \n", i);
 
+			// TODO:fix!!
 			if(i <= sizeY-2 && 1 <= j){
 				// 左下
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + (j-1)));
-			}else if(i == 0){
+			}else if(j == 0){
 				// 左下角を右上角へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (sizeX-1)));
 			}else{
