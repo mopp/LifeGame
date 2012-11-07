@@ -309,9 +309,12 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 			if(i <= sizeY-2 && 1 <= j){
 				// 左下
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (i+1)*sizeY + (j-1)));
-			}else{
+			}else if(i == 0){
 				// 左下角を右上角へ
 				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (sizeX-1)));
+			}else{
+				// 一つ左の上端へ
+				liveCellCnt += ifCellLiveAddCnt(*(*(bord) + (0)*sizeY + (j-1)));
 			}
 
 			if(1 <= j){
