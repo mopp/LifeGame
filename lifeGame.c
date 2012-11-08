@@ -1,15 +1,15 @@
-/****************************************
- * Conway's Game of Life
- *
- * 誕生
- *  死んでいるセルに隣接する生きたセルがちょうど3つあれば、次の世代が誕生する。
- * 生存
- *  生きているセルに隣接する生きたセルが2つか3つならば、次の世代でも生存する。
- * 過疎
- *  生きているセルに隣接する生きたセルが1つ以下ならば、過疎により死滅する。
- * 過密
- *  生きているセルに隣接する生きたセルが4つ以上ならば、過密により死滅する。 
- ****************************************/
+/**
+ * @file lifeGame.c
+ * @brief Conway's Game of Life
+ * @par 規則
+ *  誕生 -- 死んでいるセルに隣接する生きたセルがちょうど3つあれば、次の世代が誕生する.\n
+ *  生存 -- 生きているセルに隣接する生きたセルが2つか3つならば、次の世代でも生存する.\n
+ *  過疎 -- 生きているセルに隣接する生きたセルが1つ以下ならば、過疎により死滅する.\n
+ *  過密 -- 生きているセルに隣接する生きたセルが4つ以上ならば、過密により死滅する.\n
+ * @version 0.1
+ * @date 2012/11/08
+ * @author mopp
+ */
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -23,67 +23,35 @@
 #define CELL_SIZE 40
 #define NUM_STEP 100
 
-// 定数群
+void printBord(int**, int, int, int);
+
+int inspectBord(int**, int, int);
+
+int ifCellLiveAddCnt(int);
+
+int* initMemSetNum(int**, int, int);
+
+void waitSecond(double);
+
+int judgeNextCellState(int, int);
+
+
+/**
+ * 定数群.
+ * セルの状態や検査時の結果などを表す
+ */
 typedef enum{
 	CELL_UPDATE_ERROR,
 	CELL_UPDATE_SUCCESS,
 	CELL_STATE_DEAD,
 	CELL_STATE_LIVE,
 	CELL_STATE_STILL_LIFE,
-}Constants;
-
-/****************************************
- * 指定された盤を出力
- * @param bord 1次元でメモリ確保された盤
- * @param sizeX 盤の横方向のサイズ
- * @param sizeY 盤の縦方向のサイズ
- * @param cnt 世代数
- ****************************************/
-void printBord(int **, int , int, int);
-
-/****************************************
- * 盤を調べ世代更新をする
- * @param bord 1次元でメモリ確保された更新される盤
- * @param sizeX 盤の横方向のサイズ
- * @param sizeY 盤の縦方向のサイズ
- * @return 成功した場合CELL_UPDATE_SUCCESS
- ****************************************/
-int inspectBord(int **, int , int);
-
-/****************************************
- * セルの生存確認
- * 生存していれば1、死滅していれば0
- * @param cellContent セルの値
- ****************************************/
-int ifCellLiveAddCnt(int);
-
-/****************************************
- * 動的確保したメモリをint数値で初期化
- *
- * @param mem 1次元で動的確保されたメモリ
- * @param n 埋める数値
- * @param size 確保したメモリサイズ
- ****************************************/
-int* initMemSetNum(int**, int, int);
-
-/****************************************
- * 指定された秒間待つ
- * @param t 指定する秒
- ****************************************/
-void waitSecond(double);
-
-/****************************************
- * 次の世代のセルの状態を返す
- * @param nowCellState 現在の世代のセル状態
- * @param liveCellNum 周囲の生存セル数
- * @return セル状態
- ****************************************/
-int judgeNextCellState(int, int);
+}StateCode;
 
 
 int main(void){
 	int i, *bord, initBordSizeX, initBordSizeY, geneCnt;
-	Constants state;
+	StateCode state;
 
 	// ターミナルクリア
 	system("clear");
@@ -184,6 +152,14 @@ int main(void){
 }
 
 
+/**
+ * @brief 受け取った盤を出力
+ * @param bord 動的に確保された盤
+ * @param sizeX 盤の横方向の要素数
+ * @param sizeY 盤の縦方向の要素数
+ * @param generation 表示させる盤の世代数
+ * @retrn void
+ */
 void printBord(int** bord, int sizeX, int sizeY, int generation){
 	int i, j, looplimit = sizeX * sizeY;
 
@@ -221,7 +197,14 @@ void printBord(int** bord, int sizeX, int sizeY, int generation){
 }
 
 
-int inspectBord(int **bord, const int sizeX, const int sizeY){
+/**
+ * @brief 受け取った盤を調べて次の世代を代入する
+ * @param bord 動的に確保された盤
+ * @param sizeX 盤の横方向の要素数
+ * @param sizeY 盤の縦方向の要素数
+ * @return StateCode 検査結果
+ */
+int inspectBord(int** bord, const int sizeX, const int sizeY){
 	int i, j, liveCellCnt, *nextBord;
 	const int endX = sizeX-1, endY = sizeY-1;
 	const size_t bordMomerySize = sizeof(int) * sizeX * sizeY;
@@ -367,26 +350,36 @@ int inspectBord(int **bord, const int sizeX, const int sizeY){
 }
 
 
+/**
+ * @brief 受け取ったセルの生存確認 生存-1, 死滅-0
+ * @param cellContent セルの値
+ * @return 1or0 加算のため1か0のみ返す
+ */
 int ifCellLiveAddCnt(int cellContent){
 	return (cellContent == CELL_STATE_LIVE)?(1):(0);
 }
 
 
-void waitSecond(double t){
-	size_t waitBeginTime = time(NULL);
-
-	while(difftime(time(NULL), waitBeginTime) < t);
-}
-
-
-int* initMemSetNum(int **mem, int n, int size){
+/**
+ * @brief 受け取ったメモリをnで初期化する
+ * @param mem 動的確保されたメモリ
+ * @param n 埋める数値
+ * @param size メモリの要素数
+ */
+int* initMemSetNum(int** mem, int n, int size){
 	while(0<=--size){
 		*(*mem + size) = n;
 	}
-
 	return *mem;
 }
 
+
+/**
+ * @brief 次の世代のセルの状態を判別する
+ * @param nowCellState 現在のセル状態
+ * @param liveCellNum 周囲の生存セル数
+ * @return StateCode セルの状態
+ */
 int judgeNextCellState(int nowCellState, int liveCellNum){
 	int nextState = nowCellState;
 
@@ -413,4 +406,15 @@ int judgeNextCellState(int nowCellState, int liveCellNum){
 	}
 
 	return nextState;
+}
+
+
+/**
+ * @brief t秒間待つ
+ * @param t 停止する秒
+ * @return void
+ */
+void waitSecond(double t){
+	time_t waitBeginTime = time(NULL);
+	while(difftime(time(NULL), waitBeginTime) < t);
 }
