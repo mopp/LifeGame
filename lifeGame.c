@@ -23,18 +23,19 @@
 #define CELL_SIZE 40
 #define NUM_STEP 100
 
-void printBord(int**, int, int, int);
+void printBord(int* const*, const int, const int, const int);
 
-int inspectBord(int**, int, int);
+int inspectBord(int**, const int, const int);
 
-int ifCellLiveAddCnt(int);
+int ifCellLiveAddCnt(const int);
 
-int* initMemSetNum(int**, int, int);
+int judgeNextCellState(const int, const int);
 
-void waitSecond(double);
+int judgeAllCellDead(int* const*, const int);
 
-int judgeNextCellState(int, int);
+int* initMemSetNum(int**, const int, int);
 
+void waitSecond(const double);
 
 /**
  * 定数群.
@@ -46,8 +47,8 @@ typedef enum{
 	CELL_STATE_DEAD,
 	CELL_STATE_LIVE,
 	CELL_STATE_STILL_LIFE,
+	CELL_STATE_ALL_DEAD,
 }StateCode;
-
 
 int main(void){
 	int i, *bord, initBordSizeX, initBordSizeY, geneCnt;
@@ -102,10 +103,10 @@ int main(void){
 	 * *(bord + n*initBordSizeX + m) で n行目のm列を指す
 	 */
 	initMemSetNum(&bord, CELL_STATE_DEAD, initBordSizeX*initBordSizeY);
-	
-	// 盤への入力
+
+	/* 盤への入力 */
 	for(i=0;i<initBordSizeY;++i){
-		/* *(bord + (initBordSizeX*(initBordSizeY/2)) + i) = CELL_STATE_LIVE; */
+		*(bord + (initBordSizeX*(initBordSizeY/2)) + i) = CELL_STATE_LIVE;
 		/* *(bord + (i*initBordSizeY) + initBordSizeX/2) = CELL_STATE_LIVE; */
 		*(bord + i*initBordSizeX + i) = *(bord + i*initBordSizeX + (initBordSizeX-i-1)) = CELL_STATE_LIVE;
 	}
@@ -135,9 +136,12 @@ int main(void){
 		// 盤を更新
 		state = inspectBord(&bord, initBordSizeX, initBordSizeY);
 
-		// 中断処理
+		// 終了処理
 		if(CELL_STATE_STILL_LIFE == state){
 			printf("%d Generation\nCell State is Still Lifes!\n", i);
+			break;
+		}else if(CELL_STATE_ALL_DEAD == state){
+			printf("%d Generation\nCell is All Dead!\n", i);
 			break;
 		}else if(CELL_UPDATE_ERROR == state){
 			fprintf(stderr, "%d Generation\nCell Update Error!\n", i);
@@ -160,14 +164,14 @@ int main(void){
  * @param generation 表示させる盤の世代数
  * @retrn void
  */
-void printBord(int** bord, int sizeX, int sizeY, int generation){
+void printBord(int* const * bord, const int sizeX, const int sizeY, const int generation){
 	int i, j, looplimit = sizeX * sizeY;
 
 	// ターミナルクリア
 	system("clear");
 
 	// 世代と盤のサイズ出力
-	printf("%dx%d Bord - %dGeneration\n", sizeX, sizeY, generation);
+	printf("%dx%d Bord - %d Generation\n", sizeX, sizeY, generation);
 
 	// 上端
 	printf(" **");
@@ -202,16 +206,17 @@ void printBord(int** bord, int sizeX, int sizeY, int generation){
  * @param bord 動的に確保された盤
  * @param sizeX 盤の横方向の要素数
  * @param sizeY 盤の縦方向の要素数
- * @return StateCode 検査結果
+ * @return bordState 検査結果
  */
 int inspectBord(int** bord, const int sizeX, const int sizeY){
-	int i, j, liveCellCnt, *nextBord;
+	int i, j, liveCellCnt, *nextBord, bordState = CELL_UPDATE_SUCCESS;
 	const int endX = sizeX-1, endY = sizeY-1;
 	const size_t bordMomerySize = sizeof(int) * sizeX * sizeY;
 
 	// メモリ確保
 	nextBord = (int*)malloc(bordMomerySize);
 	if(NULL == nextBord){
+		// メモリ確保失敗
 		return CELL_UPDATE_ERROR;
 	}
 
@@ -334,19 +339,25 @@ int inspectBord(int** bord, const int sizeX, const int sizeY){
 
 	// 次の世代と現在の世代の盤が一致すれば中断
 	if(!memcmp(*bord, nextBord, bordMomerySize)){
-		// メモリ解放
-		free(nextBord);
-
-		return CELL_STATE_STILL_LIFE;
+		if(CELL_STATE_DEAD == judgeAllCellDead(&nextBord, sizeX*sizeY)){
+			// 全て死滅
+			bordState = CELL_STATE_ALL_DEAD;
+		}else{
+			// セル状態変化なし
+			bordState = CELL_STATE_STILL_LIFE;
+		}
 	}else{
 		// 更新した盤をコピー
 		memcpy(*bord, nextBord, bordMomerySize);
 
-		// メモリ解放
-		free(nextBord);
-
-		return CELL_UPDATE_SUCCESS;
+		// 通常の世代更新
+		bordState = CELL_UPDATE_SUCCESS;
 	}
+
+	// メモリ解放
+	free(nextBord);
+
+	return bordState;
 }
 
 
@@ -355,22 +366,8 @@ int inspectBord(int** bord, const int sizeX, const int sizeY){
  * @param cellContent セルの値
  * @return 1or0 加算のため1か0のみ返す
  */
-int ifCellLiveAddCnt(int cellContent){
+int ifCellLiveAddCnt(const int cellContent){
 	return (cellContent == CELL_STATE_LIVE)?(1):(0);
-}
-
-
-/**
- * @brief 受け取ったメモリをnで初期化する
- * @param mem 動的確保されたメモリ
- * @param n 埋める数値
- * @param size メモリの要素数
- */
-int* initMemSetNum(int** mem, int n, int size){
-	while(0<=--size){
-		*(*mem + size) = n;
-	}
-	return *mem;
 }
 
 
@@ -380,7 +377,7 @@ int* initMemSetNum(int** mem, int n, int size){
  * @param liveCellNum 周囲の生存セル数
  * @return StateCode セルの状態
  */
-int judgeNextCellState(int nowCellState, int liveCellNum){
+int judgeNextCellState(const int nowCellState, const int liveCellNum){
 	int nextState = nowCellState;
 
 	// 現在セルの状態で分岐
@@ -410,11 +407,43 @@ int judgeNextCellState(int nowCellState, int liveCellNum){
 
 
 /**
+ * @brief セルがすべて死滅しているか否か判定
+ * @param mem 動的確保された盤
+ * @param セルの全要素数
+ * @return StateCode
+ */
+int judgeAllCellDead(int* const* bord, const int size){
+	int i;
+	for(i=0;i<size;++i){
+		if(CELL_STATE_LIVE == *(*bord + i)){
+			return CELL_STATE_LIVE;
+		}
+	}
+
+	return CELL_STATE_DEAD;
+}
+
+
+/**
+ * @brief 受け取ったメモリをnで初期化する
+ * @param mem 動的確保されたメモリ
+ * @param n 埋める数値
+ * @param size メモリの要素数
+ */
+int* initMemSetNum(int** mem, const int n, int size){
+	while(0<=--size){
+		*(*mem + size) = n;
+	}
+	return *mem;
+}
+
+
+/**
  * @brief t秒間待つ
  * @param t 停止する秒
  * @return void
  */
-void waitSecond(double t){
+void waitSecond(const double t){
 	time_t waitBeginTime = time(NULL);
 	while(difftime(time(NULL), waitBeginTime) < t);
 }
